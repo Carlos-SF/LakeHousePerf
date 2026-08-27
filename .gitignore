@@ -1,0 +1,7 @@
+# Visual Studio
+.vs/
+
+# OS / editor cruft
+Thumbs.db
+Desktop.ini
+*.tmp
