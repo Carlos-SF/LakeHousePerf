@@ -5,3 +5,6 @@
 Thumbs.db
 Desktop.ini
 *.tmp
+
+# Databricks CLI / AI-tools machine-local state
+.databricks/
