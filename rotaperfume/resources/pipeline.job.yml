@@ -1,0 +1,23 @@
+# O pipeline medalhão da rotaperfume, orquestrado como um job Lakeflow.
+# A ordem é o conteúdo: bronze só roda se a conferência da raw passar.
+resources:
+  jobs:
+    rotaperfume_pipeline:
+      name: "[${bundle.target}] rotaperfume — pipeline medalhão"
+
+      # O catálogo vem do bundle (var.catalog) e chega às notebooks como widget `catalog`.
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+
+      tasks:
+        - task_key: raw_conferencia
+          notebook_task:
+            notebook_path: ../src/raw/conferencia.py
+          # Sem cluster = compute serverless.
+
+        - task_key: bronze_ingestao
+          depends_on:
+            - task_key: raw_conferencia
+          notebook_task:
+            notebook_path: ../src/bronze/ingestao.py

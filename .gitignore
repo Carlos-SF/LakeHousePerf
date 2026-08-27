@@ -1,0 +1,10 @@
+# Databricks CLI / bundle local state
+.databricks/
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+
+# Claude Code local overrides (keep shared settings.json tracked)
+.claude/settings.local.json
