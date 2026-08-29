@@ -1,0 +1,31 @@
+# O catálogo como código. Ontem isso eram cliques em "Create schema"; hoje são
+# recursos do bundle que sobem (e voltam) idênticos com um `databricks bundle deploy`.
+#
+# O CATÁLOGO EM SI NÃO ESTÁ AQUI: este metastore usa Default Storage, e nessa
+# configuração a API do Unity Catalog RECUSA criar catálogo (exige um managed location
+# que a conta não tem). Por isso o catálogo nasce por SQL em scripts/criar-catalogo.sh,
+# que precisa rodar ANTES do deploy. Os schemas e o volume abaixo, sim, são do bundle.
+resources:
+  schemas:
+    bronze:
+      catalog_name: ${var.catalog}
+      name: bronze
+      comment: "Bronze: ingestão bruta dos CSVs do ERP/CRM — tudo texto, sem limpeza, preserva a sujeira."
+    silver:
+      catalog_name: ${var.catalog}
+      name: silver
+      comment: "Silver: dados limpos e tipados (trim, datas dd/MM/yyyy, CNPJ, dedup) — a conversão escrita uma vez."
+    gold:
+      catalog_name: ${var.catalog}
+      name: gold
+      comment: "Gold: modelos de consumo/BI agregados, prontos para dashboard e pergunta de negócio."
+
+  volumes:
+    raw:
+      catalog_name: ${var.catalog}
+      # Referência ao recurso do schema (não a string "bronze") para o deploy criar o
+      # schema ANTES do volume.
+      schema_name: ${resources.schemas.bronze.name}
+      name: raw
+      volume_type: MANAGED
+      comment: "Landing dos CSVs crus (erp/ e crm/) antes de virarem tabela bronze — o arquivo exato que saiu do sistema."

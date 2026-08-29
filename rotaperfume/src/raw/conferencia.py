@@ -39,23 +39,20 @@ TABELAS = [
 
 # COMMAND ----------
 
-# Infra da raw — idempotente. O Volume é onde os CSVs pousam antes de virar tabela.
-spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.bronze")
-spark.sql(f"CREATE VOLUME IF NOT EXISTS {catalog}.bronze.raw")
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ## Os arquivos chegaram?
 # MAGIC
+# MAGIC A infra da raw não é criada aqui: o **catálogo** nasce por SQL em
+# MAGIC `scripts/criar-catalogo.sh` (Default Storage recusa criar catálogo pela API), e o
+# MAGIC **schema `bronze`** e o **volume `raw`** vêm do bundle (`resources/catalogo.yml`),
+# MAGIC no `databricks bundle deploy`. Esta tarefa só **confere** o que chegou.
+# MAGIC
 # MAGIC Se algum CSV não estiver no Volume, a conferência falha aqui — de propósito. Suba
 # MAGIC os 10 arquivos de `dados/{sistema}/{tabela}.csv` (na raiz do repositório) para
-# MAGIC `/Volumes/{catalog}/bronze/raw/{sistema}/` antes de rodar. Ex.:
+# MAGIC `/Volumes/{catalog}/bronze/raw/{sistema}/` antes de rodar:
 # MAGIC
 # MAGIC ```bash
-# MAGIC databricks fs cp dados/erp/produtos.csv \
-# MAGIC   dbfs:/Volumes/{catalog}/bronze/raw/erp/produtos.csv --profile <perfil>
+# MAGIC bash scripts/subir-raw.sh <perfil>
 # MAGIC ```
 
 # COMMAND ----------
