@@ -1,11 +1,15 @@
 # O pipeline medalhão da rotaperfume, orquestrado como um job Lakeflow.
 # A ordem é o conteúdo: cada camada só roda se a anterior passar.
 #
-# Hoje o job tem duas tarefas; ele cresce camada a camada nos próximos prompts:
+# O job cresce camada a camada nos próximos prompts. A silver são quatro tarefas em
+# PARALELO (uma por assunto), todas dependentes de bronze_ingestao:
 #
-#   raw_conferencia ──▶ bronze_ingestao ──▶ (silver_transformacao) ──▶ (gold_*)
-#      confere o          10 tabelas          limpa / tipa / dedup      modelos de
-#      que chegou         Delta, tudo texto   (próximo prompt)          consumo / BI
+#                                         ┌─▶ silver_clientes
+#                                         ├─▶ silver_pedidos
+#   raw_conferencia ──▶ bronze_ingestao ──┼─▶ silver_itens_produtos ──▶ (gold_*)
+#      confere o          10 tabelas       └─▶ silver_crm_financeiro      modelos de
+#      que chegou         Delta, tudo texto    limpa / tipa / dedup /     consumo / BI
+#                                              contrato (CHECK)           (próximo prompt)
 #
 # Agendado para 06:00 America/Sao_Paulo. No dev o agendamento fica PAUSED (preset do
 # target dev em databricks.yml); em prod, roda.
@@ -36,3 +40,33 @@ resources:
             - task_key: raw_conferencia
           notebook_task:
             notebook_path: ../src/bronze/ingestao.py
+
+        # A silver: quatro tarefas SQL, uma por assunto. Todas dependem só de
+        # bronze_ingestao — nenhuma depende da outra, então rodam EM PARALELO.
+        # São SQL-notebooks (.sql com cabeçalho `-- Databricks notebook source`)
+        # rodando via notebook_task no serverless: este workspace não tem SQL
+        # warehouse, então não há `sql_task`. O caminho da tabela é hardcoded no
+        # SQL (lakehouse_rotaperfume.silver.x), de propósito — SQL legível.
+        - task_key: silver_clientes
+          depends_on:
+            - task_key: bronze_ingestao
+          notebook_task:
+            notebook_path: ../src/silver/01-clientes.sql
+
+        - task_key: silver_pedidos
+          depends_on:
+            - task_key: bronze_ingestao
+          notebook_task:
+            notebook_path: ../src/silver/02-pedidos.sql
+
+        - task_key: silver_itens_produtos
+          depends_on:
+            - task_key: bronze_ingestao
+          notebook_task:
+            notebook_path: ../src/silver/03-itens-e-produtos.sql
+
+        - task_key: silver_crm_financeiro
+          depends_on:
+            - task_key: bronze_ingestao
+          notebook_task:
+            notebook_path: ../src/silver/04-crm-e-financeiro.sql
