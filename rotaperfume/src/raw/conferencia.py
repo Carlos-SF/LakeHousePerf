@@ -107,6 +107,13 @@ def conferir(sistema: str, tabela: str) -> tuple:
 conferido_em = datetime.now(timezone.utc)
 registros = [conferir(s, t) + (conferido_em,) for s, t in TABELAS]
 
+# Arquivo que chegou vazio não dá erro sozinho: ele dá número menor, com cara de
+# número certo. Falhamos aqui, de propósito, antes de gravar o controle — mesmo
+# critério do arquivo ausente acima.
+vazios = [f"{sistema}/{arquivo}" for sistema, arquivo, _bytes, linhas, _ts in registros if linhas == 0]
+if vazios:
+    raise ValueError("Arquivos vazios no Volume raw (0 linhas de dado): " + ", ".join(vazios))
+
 # COMMAND ----------
 
 controle = spark.createDataFrame(
