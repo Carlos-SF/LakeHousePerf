@@ -1,0 +1,41 @@
+# This is a Declarative Automation Bundle definition for rotaperfume.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: rotaperfume
+  uuid: 55bb643e-3c9f-496a-969c-0e34bc0c1db4
+
+include:
+  - resources/*.yml
+
+# O catálogo é a única variável do bundle. Os schemas (bronze/silver/gold) têm nome
+# fixo e são declarados como recursos em resources/catalogo.yml. Tudo é serverless —
+# este workspace não tem SQL warehouse, então não há variável warehouse_id.
+variables:
+  catalog:
+    description: Catálogo do Unity Catalog onde a lakehouse medalhão vive.
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: https://dbc-8f60023a-5d91.cloud.databricks.com
+    # ARMADILHA: NÃO usar `mode: development` aqui. Ele prefixa o nome dos recursos com
+    # `[dev carlos]` — INCLUSIVE os schemas do Unity Catalog declarados em catalogo.yml
+    # (bronze viraria `dev_carlos_bronze`), o que quebraria todo o SQL do projeto.
+    # Em vez disso, pausamos o agendamento do job explicitamente com o preset abaixo.
+    # https://docs.databricks.com/dev-tools/bundles/deployment-modes.html
+    presets:
+      trigger_pause_status: PAUSED
+    variables:
+      catalog: lakehouse_rotaperfume
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-8f60023a-5d91.cloud.databricks.com
+      # We explicitly deploy to /Workspace/Users/carlos.asfilho@outlook.com.br to make sure we only have a single copy.
+      root_path: /Workspace/Users/carlos.asfilho@outlook.com.br/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: lakehouse_rotaperfume
+    permissions:
+      - user_name: carlos.asfilho@outlook.com.br
+        level: CAN_MANAGE

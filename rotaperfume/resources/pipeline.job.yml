@@ -1,0 +1,38 @@
+# O pipeline medalhão da rotaperfume, orquestrado como um job Lakeflow.
+# A ordem é o conteúdo: cada camada só roda se a anterior passar.
+#
+# Hoje o job tem duas tarefas; ele cresce camada a camada nos próximos prompts:
+#
+#   raw_conferencia ──▶ bronze_ingestao ──▶ (silver_transformacao) ──▶ (gold_*)
+#      confere o          10 tabelas          limpa / tipa / dedup      modelos de
+#      que chegou         Delta, tudo texto   (próximo prompt)          consumo / BI
+#
+# Agendado para 06:00 America/Sao_Paulo. No dev o agendamento fica PAUSED (preset do
+# target dev em databricks.yml); em prod, roda.
+resources:
+  jobs:
+    rotaperfume_pipeline:
+      name: "[${bundle.target}] rotaperfume — pipeline medalhão"
+
+      # O catálogo vem do bundle (var.catalog) e chega às notebooks como widget `catalog`.
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: America/Sao_Paulo
+        # pause_status não é fixado aqui: quem decide é o target — PAUSED no dev
+        # (presets.trigger_pause_status), ativo no prod.
+
+      tasks:
+        - task_key: raw_conferencia
+          notebook_task:
+            notebook_path: ../src/raw/conferencia.py
+          # Sem cluster = compute serverless.
+
+        - task_key: bronze_ingestao
+          depends_on:
+            - task_key: raw_conferencia
+          notebook_task:
+            notebook_path: ../src/bronze/ingestao.py
