@@ -218,7 +218,7 @@ bash scripts/subir-raw.sh projeto-dados-ia     # devolve o arquivo e rode de nov
 
 ---
 
-## Fala de aula
+
 
 > *"Repara no que acabou de acontecer: eu não cliquei em lugar nenhum. O
 > catálogo, os três schemas e o volume viraram trinta linhas de YAML. E olha o
