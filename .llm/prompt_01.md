@@ -207,7 +207,7 @@ LIMIT 5;
 
 ---
 
-## Fala de aula
+
 
 > *"Ontem isso levou vocês uns quinze minutos de clique. Agora foram noventa
 > segundos — e olha o que eu ganhei junto: está no Git, roda de novo igual, e
