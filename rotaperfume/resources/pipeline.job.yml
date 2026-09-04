@@ -11,13 +11,15 @@
 #      confere o          10 tabelas       └─▶ silver_crm_financeiro ──┤
 #      que chegou         Delta, tudo texto                            │
 #                                                                      ▼
-#              gold_dimensoes ──▶ gold_fato_vendas ──▶ gold_marts ──▶ testes ──▶ ml_features
-#              4 dimensões        grão item, 191.080   3 marts        9 testes    features de
-#              conformadas        conformado           por diretoria  quebram o   cliente (ML)
+#              gold_dimensoes ──▶ gold_fato_vendas ──▶ gold_marts ──▶ testes ──▶ ml_features ──▶ ml_modelo
+#              4 dimensões        grão item, 191.080   3 marts        9 testes    features de     treina, registra
+#              conformadas        conformado           por diretoria  quebram o   cliente (ML)    (@prod) e pontua
 #                                                                      job
 #
-# A camada de ML começa em `ml_features`: roda DEPOIS de `testes` (modelo não se treina com
-# dado que ainda não passou nos testes) e grava gold.features_treino e gold.features_cliente.
+# A camada de ML: `ml_features` roda DEPOIS de `testes` (modelo não se treina com dado que ainda
+# não passou nos testes) e grava gold.features_treino/features_cliente; `ml_modelo` roda depois,
+# treina o classificador de propensão, registra em gold.propensao_compra (@prod) e grava
+# gold.score_propensao + gold.modelo_metricas + gold.calibragem_holdout.
 #
 # Agendado para 06:00 America/Sao_Paulo. No dev o agendamento fica PAUSED (preset do
 # target dev em databricks.yml); em prod, roda.
@@ -118,3 +120,12 @@ resources:
             - task_key: testes
           notebook_task:
             notebook_path: ../src/ml/11-features.py
+
+        # ml_modelo treina o classificador de propensão, registra em gold.propensao_compra (@prod)
+        # e grava score_propensao + as tabelas de métricas. Depende de ml_features (precisa das
+        # features prontas). Três asserts internos quebram a tarefa (inclusive auc >= 0,99 = vazamento).
+        - task_key: ml_modelo
+          depends_on:
+            - task_key: ml_features
+          notebook_task:
+            notebook_path: ../src/ml/12-modelo.py
