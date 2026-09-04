@@ -11,9 +11,13 @@
 #      confere o          10 tabelas       └─▶ silver_crm_financeiro ──┤
 #      que chegou         Delta, tudo texto                            │
 #                                                                      ▼
-#              gold_dimensoes ──▶ gold_fato_vendas ──▶ gold_marts ──▶ testes
-#              4 dimensões        grão item, 191.080   3 marts        9 testes que
-#              conformadas        conformado           por diretoria  quebram o job
+#              gold_dimensoes ──▶ gold_fato_vendas ──▶ gold_marts ──▶ testes ──▶ ml_features
+#              4 dimensões        grão item, 191.080   3 marts        9 testes    features de
+#              conformadas        conformado           por diretoria  quebram o   cliente (ML)
+#                                                                      job
+#
+# A camada de ML começa em `ml_features`: roda DEPOIS de `testes` (modelo não se treina com
+# dado que ainda não passou nos testes) e grava gold.features_treino e gold.features_cliente.
 #
 # Agendado para 06:00 America/Sao_Paulo. No dev o agendamento fica PAUSED (preset do
 # target dev em databricks.yml); em prod, roda.
@@ -105,3 +109,12 @@ resources:
             - task_key: gold_marts
           notebook_task:
             notebook_path: ../src/gold/08-testes.sql
+
+        # A camada de ML. `ml_features` só roda se `testes` passar: modelo não se treina com
+        # dado que ainda não passou nos testes de qualidade. Notebook Python serverless que
+        # grava gold.features_treino (com alvo) e gold.features_cliente (sem alvo).
+        - task_key: ml_features
+          depends_on:
+            - task_key: testes
+          notebook_task:
+            notebook_path: ../src/ml/11-features.py
