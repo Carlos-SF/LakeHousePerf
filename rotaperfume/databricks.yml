@@ -7,12 +7,16 @@ bundle:
 include:
   - resources/*.yml
 
-# O catálogo é a única variável do bundle. Os schemas (bronze/silver/gold) têm nome
-# fixo e são declarados como recursos em resources/catalogo.yml. Tudo é serverless —
-# este workspace não tem SQL warehouse, então não há variável warehouse_id.
+# Variáveis do bundle: catalog e warehouse_id. Os schemas (bronze/silver/gold) têm nome
+# fixo e são declarados como recursos em resources/catalogo.yml. As camadas do pipeline
+# rodam serverless (notebooks); já o dashboard AI/BI (prompt 5) precisa de um SQL
+# warehouse — este workspace tem o "Serverless Starter Warehouse" (cef28d8cd73465ca).
 variables:
   catalog:
     description: Catálogo do Unity Catalog onde a lakehouse medalhão vive.
+  warehouse_id:
+    description: SQL warehouse que serve o dashboard AI/BI comercial (Serverless Starter Warehouse).
+    default: cef28d8cd73465ca
 
 targets:
   dev:

@@ -11,9 +11,16 @@
 #      confere o          10 tabelas       └─▶ silver_crm_financeiro ──┤
 #      que chegou         Delta, tudo texto                            │
 #                                                                      ▼
-#              gold_dimensoes ──▶ gold_fato_vendas ──▶ gold_marts ──▶ testes
-#              4 dimensões        grão item, 191.080   3 marts        9 testes que
-#              conformadas        conformado           por diretoria  quebram o job
+#              gold_dimensoes ──▶ gold_fato_vendas ──▶ gold_marts ──▶ testes ──▶ ml_features ──▶ ml_modelo
+#              4 dimensões        grão item, 191.080   3 marts        9 testes    features de     treina, registra
+#              conformadas        conformado           por diretoria  quebram o   cliente (ML)    (@prod) e pontua
+#                                                                      job
+#
+# A camada de ML: `ml_features` roda DEPOIS de `testes` (modelo não se treina com dado que ainda
+# não passou nos testes) e grava gold.features_treino/features_cliente; `ml_modelo` roda depois,
+# treina o classificador de propensão, registra em gold.propensao_compra (@prod) e grava
+# gold.score_propensao + gold.modelo_metricas + gold.calibragem_holdout; `ml_fila` fecha a cadeia,
+# montando gold.fila_semanal (200 ligações) + as 4 funções SQL que o agente/Genie consulta.
 #
 # Agendado para 06:00 America/Sao_Paulo. No dev o agendamento fica PAUSED (preset do
 # target dev em databricks.yml); em prod, roda.
@@ -105,3 +112,30 @@ resources:
             - task_key: gold_marts
           notebook_task:
             notebook_path: ../src/gold/08-testes.sql
+
+        # A camada de ML. `ml_features` só roda se `testes` passar: modelo não se treina com
+        # dado que ainda não passou nos testes de qualidade. Notebook Python serverless que
+        # grava gold.features_treino (com alvo) e gold.features_cliente (sem alvo).
+        - task_key: ml_features
+          depends_on:
+            - task_key: testes
+          notebook_task:
+            notebook_path: ../src/ml/11-features.py
+
+        # ml_modelo treina o classificador de propensão, registra em gold.propensao_compra (@prod)
+        # e grava score_propensao + as tabelas de métricas. Depende de ml_features (precisa das
+        # features prontas). Três asserts internos quebram a tarefa (inclusive auc >= 0,99 = vazamento).
+        - task_key: ml_modelo
+          depends_on:
+            - task_key: ml_features
+          notebook_task:
+            notebook_path: ../src/ml/12-modelo.py
+
+        # ml_fila é o último metro: transforma o score na fila de 200 ligações
+        # (gold.fila_semanal) e cria as 4 funções SQL que o Genie/agente consulta. SQL-notebook
+        # serverless. Três testes internos quebram a tarefa (200 linhas; motivo não nulo; score em [0,1]).
+        - task_key: ml_fila
+          depends_on:
+            - task_key: ml_modelo
+          notebook_task:
+            notebook_path: ../src/ml/13-fila.sql
