@@ -26,6 +26,15 @@
         "ORDER BY receita DESC\n",
         "LIMIT 20"
       ]
+    },
+    {
+      "name": "ds_fila",
+      "displayName": "Fila da semana",
+      "queryLines": [
+        "SELECT vendedor, ordem, cliente_id, razao_social, cidade, uf, score, faixa, motivo, sugestao\n",
+        "FROM fila_semanal\n",
+        "ORDER BY vendedor, ordem"
+      ]
     }
   ],
   "pages": [
@@ -216,6 +225,65 @@
             }
           },
           "position": {"x": 0, "y": 20, "width": 12, "height": 6}
+        }
+      ]
+    },
+    {
+      "name": "fila_semana",
+      "displayName": "Fila da semana",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "fila-titulo",
+            "multilineTextboxSpec": {"lines": ["# Fila da semana — os 200 que ligar\n\nOrdenada por propensão (modelo `propensao_compra`), limitada a clientes com carteira vigente. Escolha o vendedor para ver a lista dele."]}
+          },
+          "position": {"x": 0, "y": 0, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "fila-filtro-vendedor",
+            "queries": [{"name": "q_vend", "query": {"datasetName": "ds_fila", "fields": [{"name": "vendedor", "expression": "`vendedor`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {"fields": [{"fieldName": "vendedor", "displayName": "Vendedor", "queryName": "q_vend"}]},
+              "frame": {"showTitle": true, "title": "Vendedor"}
+            }
+          },
+          "position": {"x": 0, "y": 1, "width": 4, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "fila-tabela",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_fila", "fields": [
+              {"name": "vendedor", "expression": "`vendedor`"},
+              {"name": "ordem", "expression": "`ordem`"},
+              {"name": "razao_social", "expression": "`razao_social`"},
+              {"name": "cidade", "expression": "`cidade`"},
+              {"name": "score", "expression": "`score`"},
+              {"name": "faixa", "expression": "`faixa`"},
+              {"name": "motivo", "expression": "`motivo`"},
+              {"name": "sugestao", "expression": "`sugestao`"}
+            ], "disaggregated": true}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {"columns": [
+                {"fieldName": "vendedor", "displayName": "Vendedor"},
+                {"fieldName": "ordem", "displayName": "Ordem"},
+                {"fieldName": "razao_social", "displayName": "Cliente"},
+                {"fieldName": "cidade", "displayName": "Cidade"},
+                {"fieldName": "score", "displayName": "Nota", "format": {"type": "number-plain", "decimalPlaces": {"type": "exact", "places": 2}}},
+                {"fieldName": "faixa", "displayName": "Faixa"},
+                {"fieldName": "motivo", "displayName": "Motivo"},
+                {"fieldName": "sugestao", "displayName": "Sugestão"}
+              ]},
+              "frame": {"showTitle": true, "title": "Fila da semana — ordem, cliente, nota, faixa, motivo e sugestão"}
+            }
+          },
+          "position": {"x": 0, "y": 3, "width": 12, "height": 12}
         }
       ]
     }

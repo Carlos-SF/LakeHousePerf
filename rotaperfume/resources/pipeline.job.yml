@@ -19,7 +19,8 @@
 # A camada de ML: `ml_features` roda DEPOIS de `testes` (modelo não se treina com dado que ainda
 # não passou nos testes) e grava gold.features_treino/features_cliente; `ml_modelo` roda depois,
 # treina o classificador de propensão, registra em gold.propensao_compra (@prod) e grava
-# gold.score_propensao + gold.modelo_metricas + gold.calibragem_holdout.
+# gold.score_propensao + gold.modelo_metricas + gold.calibragem_holdout; `ml_fila` fecha a cadeia,
+# montando gold.fila_semanal (200 ligações) + as 4 funções SQL que o agente/Genie consulta.
 #
 # Agendado para 06:00 America/Sao_Paulo. No dev o agendamento fica PAUSED (preset do
 # target dev em databricks.yml); em prod, roda.
@@ -129,3 +130,12 @@ resources:
             - task_key: ml_features
           notebook_task:
             notebook_path: ../src/ml/12-modelo.py
+
+        # ml_fila é o último metro: transforma o score na fila de 200 ligações
+        # (gold.fila_semanal) e cria as 4 funções SQL que o Genie/agente consulta. SQL-notebook
+        # serverless. Três testes internos quebram a tarefa (200 linhas; motivo não nulo; score em [0,1]).
+        - task_key: ml_fila
+          depends_on:
+            - task_key: ml_modelo
+          notebook_task:
+            notebook_path: ../src/ml/13-fila.sql
